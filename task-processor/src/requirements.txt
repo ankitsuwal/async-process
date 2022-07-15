@@ -1,0 +1,12 @@
+Flask==2.0.3
+pandas==1.3.5
+PyPDF2==2.3.1
+xmltodict
+flask-jsonschema-validator==0.0.4
+# new lib for async feature
+celery==4.4.7
+eventlet==0.32.0
+redis==3.4.1
+openpyxl == 3.0.9
+# MongoDB
+PyMongo==3.11.1

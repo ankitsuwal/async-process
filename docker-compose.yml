@@ -1,0 +1,85 @@
+version: "3.8"
+
+services:
+  async-ms:
+    build:
+      context: ./task-processor  # path where you keep your dockerfile
+      dockerfile: Dockerfile.dev
+    container_name: async-ms
+    ports:
+      - "5000:5000"
+    volumes:
+    - ./task-processor/src:/src
+    environment:
+      - CELERY_BROKER_URL
+      - CELERY_RESULT_BACKEND
+      - GMAIL_USER
+      - GMAIL_PASSWORD
+      - MONGODB_HOSTNAME
+      - MONGO_PORT
+      - MONGO_INITDB_ROOT_USERNAME
+      - MONGO_INITDB_ROOT_PASSWORD
+      - MONGO_AUTH_SOURCE
+    networks:
+      - test-network
+    tty: true
+    restart: always
+    depends_on:
+      - redis
+      - database
+
+  async-processor:
+    build:
+      context: ./task-processor
+      dockerfile: Dockerfile.dev
+    container_name: worker
+    command: celery -A celery_config.tasks.celery worker -l info -P eventlet
+    volumes:
+      - ./task-processor/src:/src
+    environment:
+      - CELERY_BROKER_URL
+      - CELERY_RESULT_BACKEND
+    # user: nobody
+    networks:
+      - test-network
+    tty: true
+    restart: always
+    depends_on:
+      - async-ms
+      - redis
+
+  redis:
+    container_name: redis
+    image: redis:6-alpine
+    networks:
+      - test-network
+    tty: true
+
+  master-db:
+    build:
+      context: ./database
+      dockerfile: Dockerfile.dev
+    image: mongo
+    container_name: master-db
+    restart: always
+    environment:
+      - MONGODB_HOSTNAME
+      - MONGO_PORT
+      - MONGO_INITDB_ROOT_USERNAME
+      - MONGO_INITDB_ROOT_PASSWORD
+      - MONGO_AUTH_SOURCE
+    volumes:
+      - database-volume:/data/db
+    ports:
+      - 27017-27019:27017-27019
+    tty: true
+    networks:
+      - test-network
+
+networks:
+  test-network:
+    driver: bridge
+
+volumes:
+  database-volume:
+    driver: local
